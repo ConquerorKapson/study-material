@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* KaTeX */
+@import "katex/dist/katex.min.css";
+/* highlight.js theme (works in dark mode) */
+@import "highlight.js/styles/github-dark.css";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0a0a0b;
+  color: #e8e8ee;
+  font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+/* Reading progress bar */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #7c5cff, #22d3ee);
+  z-index: 50;
+  transition: width 80ms linear;
+}
+
+/* Tweak prose for dark theme */
+.prose-tweaks :where(h1, h2, h3, h4) {
+  scroll-margin-top: 5rem;
+}
+.prose-tweaks code:not(pre code) {
+  background: #1b1b20;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  border: 1px solid #2a2a32;
+}
+.prose-tweaks pre {
+  background: #0d1117 !important;
+  border: 1px solid #2a2a32;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.prose-tweaks table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.prose-tweaks th,
+.prose-tweaks td {
+  border: 1px solid #2a2a32;
+  padding: 0.5rem 0.75rem;
+}
+.prose-tweaks th {
+  background: #1b1b20;
+}
+.prose-tweaks blockquote {
+  border-left: 3px solid #7c5cff;
+  background: #131316;
+  padding: 0.5rem 1rem;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Anchor links on headings */
+.prose-tweaks .anchor {
+  opacity: 0;
+  margin-left: 0.4rem;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.prose-tweaks h2:hover .anchor,
+.prose-tweaks h3:hover .anchor,
+.prose-tweaks h4:hover .anchor {
+  opacity: 0.5;
+}
+
+/* Sidebar scroll */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #2a2a32;
+  border-radius: 3px;
+}
+
+/* Mermaid container */
+.mermaid-container {
+  background: #0d1117;
+  border: 1px solid #2a2a32;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
