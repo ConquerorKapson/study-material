@@ -8,7 +8,10 @@ export default function HomePage() {
   return (
     <div>
       <header className="mb-10">
-        <h1 className="text-4xl font-bold mb-2">Study Material</h1>
+        <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted mb-3">
+          Interview Essentials Guide
+        </div>
+        <h1 className="text-4xl font-serif font-bold mb-2">Study Material</h1>
         <p className="text-muted">
           {topics.length} topic{topics.length === 1 ? "" : "s"} · {total} article
           {total === 1 ? "" : "s"}
@@ -20,9 +23,9 @@ export default function HomePage() {
           <Link
             key={t.slug}
             href={`/${t.slug}`}
-            className="block rounded-lg border border-border bg-panel p-5 hover:border-accent transition"
+            className="block rounded border border-border bg-panel p-5 hover:border-accent transition"
           >
-            <div className="text-xl font-semibold mb-1">{t.title}</div>
+            <div className="text-xl font-serif font-semibold mb-1">{t.title}</div>
             <div className="text-sm text-muted">
               {t.articles.length} article{t.articles.length === 1 ? "" : "s"}
             </div>

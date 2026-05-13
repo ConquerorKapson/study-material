@@ -16,8 +16,8 @@ export default function RootLayout({
 }) {
   const topics = getTopics();
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-bg text-text">
+    <html lang="en">
+      <body className="min-h-screen bg-bg text-text font-sans">
         <ReadingProgress />
         <div className="flex">
           <Sidebar topics={topics} />

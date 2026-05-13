@@ -41,7 +41,7 @@ export default function TOC({ headings }: { headings: Heading[] }) {
               href={`#${h.id}`}
               className={`block transition border-l-2 -ml-px pl-3 py-0.5 ${
                 activeId === h.id
-                  ? "text-accent2 border-accent2"
+                  ? "text-accent border-accent"
                   : "text-muted border-transparent hover:text-text"
               }`}
             >

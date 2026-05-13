@@ -14,7 +14,7 @@ export default function Sidebar({ topics }: { topics: Topic[] }) {
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="lg:hidden fixed top-3 left-3 z-40 rounded-md border border-border bg-panel px-3 py-1.5 text-sm"
+        className="lg:hidden fixed top-3 left-3 z-40 rounded border border-border bg-panel px-3 py-1.5 text-sm font-mono text-xs uppercase tracking-wider"
         aria-label="Toggle navigation"
       >
         {open ? "Close" : "Menu"}
@@ -29,10 +29,13 @@ export default function Sidebar({ topics }: { topics: Topic[] }) {
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="block text-lg font-bold mb-6 hover:text-accent"
+            className="block text-xl font-serif font-bold mb-1 hover:text-accent transition"
           >
             Study Material
           </Link>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted mb-6">
+            Interview Essentials
+          </div>
 
           <nav className="space-y-5">
             {topics.map((t) => {
@@ -42,7 +45,7 @@ export default function Sidebar({ topics }: { topics: Topic[] }) {
                   <Link
                     href={`/${t.slug}`}
                     onClick={() => setOpen(false)}
-                    className={`block text-xs font-semibold uppercase tracking-wider mb-2 ${
+                    className={`block text-[10px] font-mono font-semibold uppercase tracking-[0.15em] mb-2 ${
                       topicActive ? "text-accent" : "text-muted hover:text-text"
                     }`}
                   >
@@ -59,8 +62,8 @@ export default function Sidebar({ topics }: { topics: Topic[] }) {
                             onClick={() => setOpen(false)}
                             className={`block rounded px-2 py-1.5 text-sm transition ${
                               active
-                                ? "bg-panel2 text-accent2 border-l-2 border-accent2 pl-3"
-                                : "text-text/80 hover:bg-panel2 hover:text-text"
+                                ? "bg-panel2 text-accent border-l-2 border-accent pl-3"
+                                : "text-text/70 hover:bg-panel2 hover:text-text"
                             }`}
                           >
                             {a.title}

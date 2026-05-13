@@ -18,13 +18,13 @@ export default function TopicPage({ params }: { params: { topic: string } }) {
         </Link>{" "}
         / <span className="text-text">{topic.title}</span>
       </nav>
-      <h1 className="text-3xl font-bold mb-6">{topic.title}</h1>
+      <h1 className="text-3xl font-serif font-bold mb-6">{topic.title}</h1>
       <ul className="space-y-3">
         {topic.articles.map((a) => (
           <li key={a.slug}>
             <Link
               href={`/${topic.slug}/${a.slug}`}
-              className="block rounded-lg border border-border bg-panel p-4 hover:border-accent transition"
+              className="block rounded border border-border bg-panel p-4 hover:border-accent transition"
             >
               <div className="font-semibold">{a.title}</div>
               {a.description && (

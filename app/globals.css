@@ -4,18 +4,23 @@
 
 /* KaTeX */
 @import "katex/dist/katex.min.css";
-/* highlight.js theme (works in dark mode) */
-@import "highlight.js/styles/github-dark.css";
+/* highlight.js theme */
+@import "highlight.js/styles/github.css";
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background: #0a0a0b;
-  color: #e8e8ee;
-  font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", Arial, sans-serif;
+  background: #f5f0e8;
+  color: #0f0e0c;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  line-height: 1.7;
 }
 
 /* Reading progress bar */
@@ -25,26 +30,30 @@ body {
   left: 0;
   height: 3px;
   width: 0%;
-  background: linear-gradient(90deg, #7c5cff, #22d3ee);
+  background: linear-gradient(90deg, #c8392b, #b8860b);
   z-index: 50;
   transition: width 80ms linear;
 }
 
-/* Tweak prose for dark theme */
+/* Tweak prose for warm theme */
 .prose-tweaks :where(h1, h2, h3, h4) {
   scroll-margin-top: 5rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #0f0e0c;
 }
 .prose-tweaks code:not(pre code) {
-  background: #1b1b20;
+  background: #e3ddd2;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   font-size: 0.9em;
-  border: 1px solid #2a2a32;
+  border: 1px solid #d4cfc6;
+  color: #1a4a6b;
 }
 .prose-tweaks pre {
-  background: #0d1117 !important;
-  border: 1px solid #2a2a32;
-  border-radius: 8px;
+  background: #1a1917 !important;
+  color: #e8e3d8;
+  border: 1px solid #d4cfc6;
+  border-radius: 4px;
   padding: 1rem;
   overflow-x: auto;
 }
@@ -55,17 +64,53 @@ body {
 }
 .prose-tweaks th,
 .prose-tweaks td {
-  border: 1px solid #2a2a32;
+  border: 1px solid #d4cfc6;
   padding: 0.5rem 0.75rem;
 }
 .prose-tweaks th {
-  background: #1b1b20;
+  background: #e3ddd2;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b6560;
+}
+.prose-tweaks td:first-child {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #1a4a6b;
+}
+.prose-tweaks tbody tr:hover {
+  background: rgba(0, 0, 0, 0.03);
 }
 .prose-tweaks blockquote {
-  border-left: 3px solid #7c5cff;
-  background: #131316;
-  padding: 0.5rem 1rem;
-  border-radius: 0 6px 6px 0;
+  border-left: 4px solid #c8392b;
+  background: rgba(200, 57, 43, 0.04);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0 4px 4px 0;
+  color: #2a2825;
+}
+.prose-tweaks blockquote p {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+}
+.prose-tweaks strong {
+  font-weight: 500;
+  color: #0f0e0c;
+}
+.prose-tweaks p,
+.prose-tweaks li {
+  color: #2a2825;
+}
+.prose-tweaks a {
+  color: #c8392b;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.prose-tweaks a:hover {
+  color: #b8860b;
 }
 
 /* Anchor links on headings */
@@ -74,6 +119,7 @@ body {
   margin-left: 0.4rem;
   text-decoration: none;
   transition: opacity 0.15s;
+  color: #c8392b;
 }
 .prose-tweaks h2:hover .anchor,
 .prose-tweaks h3:hover .anchor,
@@ -86,15 +132,15 @@ body {
   width: 6px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #2a2a32;
+  background: #d4cfc6;
   border-radius: 3px;
 }
 
 /* Mermaid container */
 .mermaid-container {
-  background: #0d1117;
-  border: 1px solid #2a2a32;
-  border-radius: 8px;
+  background: #1a1917;
+  border: 1px solid #d4cfc6;
+  border-radius: 4px;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
