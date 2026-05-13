@@ -1,48 +1,48 @@
 ---
 title: "OpenSearch & Elasticsearch"
-description: "Tech Lead interview guide — architecture, indexing, Query DSL, BM25, k-NN vector search, production tuning, and OpenSearch vs Elasticsearch decision framework."
+description: "Tech Lead interview guide — architecture, indexing, Query DSL, BM25 scoring, k-NN vector search, production tuning, and the OpenSearch vs Elasticsearch decision framework."
 order: 2
 ---
-# OpenSearch & Elasticsearch — Tech Lead Interview Study Notes
+
+# OpenSearch & Elasticsearch
+
+> **Category:** Distributed Search & Analytics · **Difficulty:** Advanced · **Related:** Lucene · Kafka · Distributed Systems
 
 ---
 
-## 1. What They Are & How They Relate
+## 01 — What They Are & How They Relate
 
-**Elasticsearch** is a distributed search and analytics engine built on top of Apache Lucene. Developed by Elastic (elastic.co), it became the industry standard for full-text search, log analytics, and real-time data exploration.
+**Elasticsearch** is a distributed search and analytics engine built on Apache Lucene — the industry standard for full-text search, log analytics, and real-time data exploration.
 
-**OpenSearch** is a community-driven, open-source fork of Elasticsearch 7.10.2, created by AWS in 2021 after Elastic changed its license from Apache 2.0 to the Server Side Public License (SSPL) — which is not OSI-approved open source. OpenSearch is governed by the OpenSearch Project and is fully Apache 2.0 licensed.
-
-**The fork moment:** In January 2021, Elastic relicensed Elasticsearch and Kibana under SSPL. AWS (a heavy user and redistributor of Elasticsearch) forked version 7.10.2 and released OpenSearch 1.0 in September 2021. The APIs were kept deliberately compatible.
+**OpenSearch** is a community-driven, Apache 2.0 fork of Elasticsearch 7.10.2, created by AWS in 2021 after Elastic relicensed under SSPL — which is not OSI-approved open source.
 
 ```
-Elasticsearch (Apache 2.0) 
+Elasticsearch (Apache 2.0)
     └── versions up to 7.10.2
-    └── forked by AWS → OpenSearch 1.0 (Sept 2021)
+    └── forked by AWS → OpenSearch 1.0  (Sept 2021)
 
-Elasticsearch (SSPL) 
+Elasticsearch (SSPL → AGPL in 2024)
     └── versions 7.11+ onward
     └── continues independently under Elastic
 ```
 
-**As of 2024:** OpenSearch is at version 2.x with significant feature additions (k-NN vector search, ML commons, security plugin). Elasticsearch relicensed back to AGPL in August 2024 — but OpenSearch continues independently.
+> **The fork moment:** In January 2021, Elastic relicensed under SSPL. AWS forked version 7.10.2 and released OpenSearch 1.0. APIs were kept deliberately compatible (~95% at the 7.10 baseline). As of 2024, OpenSearch is at 2.x with significant additions — k-NN vector search, ML Commons, free security plugin.
 
 ---
 
-## 2. Architecture Deep Dive
+## 02 — Architecture Deep Dive
 
 ### Core Concepts
 
 | Concept | Description |
 |---|---|
-| **Index** | Equivalent to a database table. A collection of documents sharing a mapping. |
-| **Document** | A JSON object — the unit of storage and retrieval. |
-| **Shard** | A single Lucene instance. An index is split into N primary shards for horizontal scale. |
-| **Replica** | A copy of a primary shard. Provides redundancy and read throughput. |
-| **Node** | A single server in the cluster. Roles: master, data, ingest, coordinating. |
-| **Cluster** | A collection of nodes with a shared cluster name. |
-| **Segment** | Immutable Lucene file on disk. Shards are made of segments. |
-| **Inverted Index** | The core data structure. Maps terms → document IDs for fast full-text lookup. |
+| **Index** | Equivalent to a database table — a collection of documents sharing a mapping |
+| **Document** | A JSON object — the unit of storage and retrieval |
+| **Shard** | A single Lucene instance — an index is split into N primary shards for horizontal scale |
+| **Replica** | A copy of a primary shard — provides redundancy and read throughput |
+| **Node** | A single server in the cluster — roles: master, data, ingest, coordinating |
+| **Segment** | Immutable Lucene file on disk — shards are made of segments |
+| **Inverted Index** | The core data structure — maps terms → document IDs for fast full-text lookup |
 
 ### Node Roles
 
@@ -55,7 +55,7 @@ Cluster
 └── ML nodes (OpenSearch)   (run ML models, anomaly detection)
 ```
 
-A node can have multiple roles. In production, always dedicate master-eligible nodes — never let data nodes be master-eligible on large clusters.
+> **Production rule:** Always dedicate master-eligible nodes — never let data nodes be master-eligible on large clusters. 3 master-eligible nodes is the standard minimum.
 
 ### Shard Lifecycle
 
@@ -67,16 +67,16 @@ Index created (primary_shards=3, replicas=1)
 
 Write path:
   Client → Coordinating node → Primary shard (write + replicate) → Replica shards
-  
+
 Read path:
   Client → Coordinating node → Round-robin between primary or replica → Merge results
 ```
 
-**Shard sizing rule of thumb:** Keep shards between 10–50 GB. Too small = overhead. Too large = slow recovery, GC pressure.
+**Shard sizing rule of thumb:** Keep shards between **10–50 GB**. Too small = overhead. Too large = slow recovery and GC pressure.
 
 ### The Inverted Index (Lucene)
 
-When you index a document, the text is analyzed (tokenized, lowercased, stemmed) and stored as:
+When you index a document, text is analyzed (tokenized, lowercased, stemmed) and stored as:
 
 ```
 Term        → Document IDs
@@ -85,68 +85,56 @@ Term        → Document IDs
 "failed"    → [doc_4, doc_9]
 ```
 
-A search for `"payment failed"` becomes an intersection of those posting lists — extremely fast even over billions of documents.
+A search for `"payment failed"` becomes an intersection of posting lists — extremely fast even over billions of documents.
 
 ---
 
-## 3. Elasticsearch vs OpenSearch — Key Differences
+## 03 — Elasticsearch vs OpenSearch
+
+### Key Differences
 
 | Area | Elasticsearch | OpenSearch |
 |---|---|---|
-| License | SSPL (7.11+), AGPL (8.9+) | Apache 2.0 |
-| Governance | Elastic (company) | OpenSearch Project (community + AWS) |
-| Managed cloud | Elastic Cloud | Amazon OpenSearch Service |
-| Vector search | kNN via dense_vector | k-NN plugin, FAISS, Nmslib, Lucene engine |
-| ML features | Elastic ML (RLHF, ELSER) | ML Commons, neural search |
-| Security | X-Pack (paid tier historically) | Security plugin — free, bundled |
-| Kibana equivalent | Kibana | OpenSearch Dashboards |
-| Logstash equivalent | Logstash | Data Prepper |
-| API compatibility | Reference implementation | ~95% compatible with ES 7.10 API |
-| Alerting | Watcher (paid) | Alerting plugin (free) |
+| **License** | SSPL (7.11+), AGPL (8.9+) | Apache 2.0 |
+| **Governance** | Elastic (company) | OpenSearch Project (community + AWS) |
+| **Managed cloud** | Elastic Cloud | Amazon OpenSearch Service |
+| **Vector search** | kNN via `dense_vector` | k-NN plugin — FAISS, Nmslib, Lucene engine |
+| **ML features** | Elastic ML (RLHF, ELSER) | ML Commons, neural search |
+| **Security** | X-Pack (paid tier historically) | Security plugin — **free, bundled** |
+| **Kibana equivalent** | Kibana | OpenSearch Dashboards |
+| **Logstash equivalent** | Logstash | Data Prepper |
+| **API compatibility** | Reference implementation | ~95% compatible with ES 7.10 API |
+| **Alerting** | Watcher (paid) | Alerting plugin (free) |
 
-**Tech lead note:** If you're on AWS infrastructure, OpenSearch Service is the natural choice — no licensing concern, deeply integrated with IAM, VPC, CloudWatch. If you need Elastic's proprietary ML models (ELSER for semantic search) or support contract with Elastic, stay on Elasticsearch.
+> **Tech lead note:** On AWS infrastructure, OpenSearch Service is the natural choice — no licensing concern, deep IAM/VPC/CloudWatch integration. If you need Elastic's proprietary ML models (ELSER for semantic search) or an Elastic support contract, stay on Elasticsearch.
 
 ---
 
-## 4. Indexing — How Documents Get Stored
+## 04 — Indexing — How Documents Get Stored
 
-### Write Path Detail
+### Write Path in Detail
 
 ```
 1. Client sends PUT /orders/_doc/ord_891 { "status": "PAID", "amount": 2400 }
 2. Request hits coordinating node
-3. Coordinating node computes shard = hash(ord_891) % num_primary_shards
+3. Coordinating node computes: shard = hash(ord_891) % num_primary_shards
 4. Request forwarded to primary shard's node
 5. Primary shard writes to in-memory buffer + translog (WAL equivalent)
 6. Primary forwards to replica shards in parallel
 7. Once majority replicas ACK → client gets 200 OK
-8. In background: refresh (every 1s) writes buffer → new Lucene segment (now searchable)
-9. In background: flush (every 30min or translog threshold) → fsync segment to disk, clear translog
+8. Background: refresh (every 1s) writes buffer → new Lucene segment (now searchable)
+9. Background: flush (every 30min or translog threshold) → fsync to disk, clear translog
 ```
 
 ### Refresh vs Flush vs Merge
 
-```
-Refresh (default: every 1 second)
-  → Moves docs from in-memory buffer to a new Lucene segment
-  → Docs become searchable
-  → NOT durable (segment not fsynced yet)
-  → Cost: moderate — tune refresh_interval to 30s or -1 during bulk indexing
+| Operation | What it does | Durability | Cost |
+|---|---|---|---|
+| **Refresh** (every 1s) | Buffer → new Lucene segment — docs become searchable | ❌ Not fsynced | Moderate |
+| **Flush** (auto or API) | fsync segments to disk, clear translog | ✅ Durable | High I/O |
+| **Segment Merge** (background) | Combines small segments, removes deleted docs | — | High CPU + I/O |
 
-Flush (triggered automatically or via API)
-  → fsyncs segments to disk
-  → Clears the translog
-  → Durable write
-  → Cost: high I/O
-
-Segment Merge (background)
-  → Combines many small segments into fewer large ones
-  → Deletes marked-deleted documents
-  → Frees disk space, improves search speed
-  → Cost: high CPU + I/O — throttle with index.merge.scheduler.max_thread_count
-```
-
-**Interview answer:** "Near real-time" means documents are searchable within ~1 second (one refresh cycle) — not instantly after the write ACK. You can force immediate searchability with `?refresh=true` or `?refresh=wait_for` but at a performance cost.
+> **Interview answer:** "Near real-time" means documents are searchable within ~1 second — after the next refresh cycle. Not instantly after the write ACK. You can force `?refresh=true` or `?refresh=wait_for` but at a performance cost.
 
 ### Bulk Indexing Best Practices
 
@@ -161,14 +149,14 @@ POST /_bulk
 For high-throughput indexing:
 - Set `refresh_interval: -1` during the load, restore to `1s` after
 - Set `number_of_replicas: 0` during load, restore after
-- Use bulk API with 5–15 MB batches
+- Use bulk API with **5–15 MB** batches
 - Use multiple parallel bulk threads (match data node count)
 
 ---
 
-## 5. Mappings & Data Types
+## 05 — Mappings & Data Types
 
-Mappings define the schema — field types, analyzers, index settings. Always define explicit mappings in production. Dynamic mapping is convenient but dangerous at scale.
+Always define **explicit mappings** in production. Dynamic mapping is convenient but dangerous at scale — it can silently create wrong field types and cause mapping explosion.
 
 ```json
 PUT /orders
@@ -185,25 +173,23 @@ PUT /orders
       "status":      { "type": "keyword" },
       "amount":      { "type": "double" },
       "description": { "type": "text", "analyzer": "standard" },
-      "tags":        { "type": "keyword" },
       "created_at":  { "type": "date", "format": "strict_date_optional_time" },
-      "location":    { "type": "geo_point" },
       "embedding":   { "type": "knn_vector", "dimension": 768 }
     }
   }
 }
 ```
 
-### `text` vs `keyword` — Most Common Interview Question
+### `text` vs `keyword` — The Most Common Interview Question
 
 | | `text` | `keyword` |
 |---|---|---|
-| Use for | Full-text search (product names, descriptions) | Exact match, filtering, aggregations, sorting |
-| Analyzed? | Yes — tokenized, lowercased, stemmed | No — stored as-is |
-| Aggregatable? | No (by default) | Yes |
-| Example | `"Payment failed for order"` | `"PAYMENT_FAILED"` |
+| **Use for** | Full-text search (descriptions, messages) | Exact match, filtering, aggregations, sorting |
+| **Analyzed?** | Yes — tokenized, lowercased, stemmed | No — stored as-is |
+| **Aggregatable?** | ❌ No | ✅ Yes |
+| **Example value** | `"Payment failed for order"` | `"PAYMENT_FAILED"` |
 
-**Multi-field mapping** — index both ways:
+**Multi-field mapping** — index both ways for maximum flexibility:
 
 ```json
 "status_message": {
@@ -214,15 +200,13 @@ PUT /orders
 }
 ```
 
-Now `status_message` is searchable as full-text and `status_message.keyword` is aggregatable.
+Now `status_message` is full-text searchable and `status_message.keyword` is aggregatable.
 
-### Mapping Explosion (avoid this)
-
-Dynamic mapping on nested JSON can create thousands of fields — exhausts JVM heap. Use `dynamic: false` or `dynamic: strict` on production indexes.
+> **Mapping explosion warning:** Dynamic mapping on deeply nested JSON can create thousands of fields and exhaust JVM heap. Use `dynamic: false` or `dynamic: strict` on production indexes.
 
 ---
 
-## 6. Search — Query DSL
+## 06 — Search — Query DSL
 
 ### Query vs Filter Context
 
@@ -244,9 +228,10 @@ GET /orders/_search
 }
 ```
 
-**Must (query context):** Contributes to relevance score (`_score`). Slower — must compute TF/IDF or BM25.
-
-**Filter (filter context):** Binary yes/no. No scoring. **Cached** by the query cache. Always put non-relevance conditions in `filter`.
+| Context | Behaviour | Performance |
+|---|---|---|
+| **must** (query context) | Contributes to `_score` — computes BM25 relevance | Slower |
+| **filter** (filter context) | Binary yes/no — no scoring | **Cached** — always prefer for non-relevance conditions |
 
 ### Common Query Types
 
@@ -260,25 +245,22 @@ GET /orders/_search
 // Phrase match — terms must be adjacent
 { "match_phrase": { "description": "payment gateway" } }
 
-// Multiple terms (OR by default)
+// Multiple terms (OR)
 { "terms": { "status": ["PAID", "REFUNDED"] } }
-
-// Wildcard (expensive — avoid on high-cardinality fields)
-{ "wildcard": { "order_id": "ord_8*" } }
 
 // Range
 { "range": { "amount": { "gte": 500, "lte": 5000 } } }
 
-// Exists
-{ "exists": { "field": "refund_id" } }
-
-// Fuzzy (handles typos)
+// Fuzzy (handles typos — AUTO = edit distance based on term length)
 { "fuzzy": { "description": { "value": "paymnt", "fuzziness": "AUTO" } } }
+
+// Wildcard (expensive — avoid on high-cardinality fields)
+{ "wildcard": { "order_id": "ord_8*" } }
 ```
 
 ### Aggregations
 
-Aggregations are analytics on top of search — equivalent to GROUP BY in SQL.
+Aggregations are analytics on top of search — equivalent to `GROUP BY` in SQL.
 
 ```json
 GET /orders/_search
@@ -297,42 +279,36 @@ GET /orders/_search
         "field": "created_at",
         "calendar_interval": "day"
       }
-    },
-    "amount_percentiles": {
-      "percentiles": {
-        "field": "amount",
-        "percents": [50, 95, 99]
-      }
     }
   }
 }
 ```
 
-**Important:** Aggregations run on the entire result set (not just the current page). `size: 0` skips returning hits — common pattern when you only need aggregation results.
+> **Key pattern:** `size: 0` skips returning hits — use it when you only need aggregation results. Aggregations run over the **entire** result set, not just the current page.
 
 ---
 
-## 7. Relevance Scoring — BM25
+## 07 — Relevance Scoring — BM25
 
-OpenSearch/Elasticsearch use **BM25** (Best Match 25) as the default scoring algorithm. It replaced TF-IDF in Elasticsearch 5.0.
+OpenSearch/Elasticsearch use **BM25** (Best Match 25) as the default scoring algorithm, replacing TF-IDF since Elasticsearch 5.0.
 
 ```
-Score(D, Q) = Σ IDF(qi) * (f(qi, D) * (k1 + 1)) / (f(qi, D) + k1 * (1 - b + b * |D| / avgDL))
+Score(D, Q) = Σ IDF(qi) × (f(qi,D) × (k1+1)) / (f(qi,D) + k1 × (1 - b + b × |D|/avgDL))
 
 Where:
-  f(qi, D)  = term frequency of query term qi in document D
+  f(qi, D)  = term frequency of query term in document D
   |D|       = document length
   avgDL     = average document length in the index
-  k1        = term frequency saturation (default 1.2) — diminishing returns on repeated terms
-  b         = length normalization (default 0.75) — penalizes long documents
+  k1 = 1.2  = term frequency saturation (diminishing returns on repeated terms)
+  b  = 0.75 = length normalization (penalizes long documents)
   IDF       = log(1 + (N - n + 0.5) / (n + 0.5)) — rare terms score higher
 ```
 
 **What this means practically:**
-- A document mentioning "payment" 10 times scores higher than one mentioning it once — but the gain diminishes (saturation via k1)
-- Long documents are penalized relative to short ones (normalization via b)
-- Rare terms in the index score higher than common terms (IDF)
-- Tune b=0 to disable length normalization (useful for log data)
+- Mentioning "payment" 10× scores higher than once — but gains diminish (k1 saturation)
+- Long documents are penalized relative to short ones (b normalization)
+- Rare terms score higher than common terms (IDF)
+- Set `b=0` to disable length normalization — useful for log data where document length shouldn't matter
 
 ### Boosting
 
@@ -349,63 +325,42 @@ Where:
 
 ---
 
-## 8. Performance & Production Tuning
+## 08 — Performance & Production Tuning
 
-### JVM Heap
+### JVM Heap Rules
 
-- Set heap to **50% of available RAM**, max 32 GB (above 32 GB, JVM can't use compressed OOPs — pointer size doubles, heap becomes less efficient)
-- Set `Xms = Xmx` — prevents heap resizing at runtime
-- Monitor GC pauses — long GC = cluster instability
+- Set heap to **50% of available RAM**, hard max **32 GB** — above 32 GB, JVM loses compressed OOPs and pointer size doubles
+- Always set `Xms = Xmx` — prevents heap resizing at runtime
+- Keep **< 20 shards per GB of heap** per node
+- Monitor GC pauses — sustained GC = cluster instability
 
 ```bash
-# elasticsearch.yml / opensearch.yml
+# jvm.options
 -Xms16g
 -Xmx16g
 ```
 
-### Index Lifecycle Management (ILM) / Index State Management (ISM)
+### Index Lifecycle Management (ILM / ISM)
 
-For time-series data (logs, events), use ILM (Elasticsearch) or ISM (OpenSearch) to automate index lifecycle:
+For time-series data (logs, events), automate the full lifecycle:
 
-```
-Hot phase    → Active write + search. Keep on fast SSD nodes.
-Warm phase   → Reduced replicas, force-merge to 1 segment, move to warm nodes.
-Cold phase   → Read-only, compressed. Move to cold/object storage.
-Delete phase → Auto-delete after retention window.
-```
+| Phase | Action |
+|---|---|
+| **Hot** | Active writes + search. Fast SSD nodes. |
+| **Warm** | Reduce replicas, force-merge to 1 segment. Move to warm nodes. |
+| **Cold** | Read-only, compressed. Move to cold/object storage. |
+| **Delete** | Auto-delete after retention window. |
 
-This is critical for log use cases. Without it, old indexes pile up and consume expensive SSD storage.
-
-### Force Merge
-
-After a time-series index stops receiving writes, force-merge it to 1 segment:
-
-```
-POST /logs-2024-01-01/_forcemerge?max_num_segments=1
-```
-
-This removes deleted documents, reduces segment count, and dramatically speeds up searches on that index. Only do this on read-only indexes — force merge on active indexes blocks writes.
-
-### Query Tuning
-
-```
-1. Always use filter context for non-scoring conditions (cached)
-2. Avoid wildcard/regex on high-cardinality keyword fields
-3. Use keyword for sorting, not text
-4. Avoid deep pagination — use search_after instead of from/size
-5. Use _source filtering to return only needed fields
-6. Profile slow queries with ?profile=true
-7. Avoid scripted fields in hot paths (Painless scripts bypass query cache)
-```
+> Without ILM/ISM, old indexes pile up and consume expensive SSD storage. This is non-negotiable for any log pipeline.
 
 ### Deep Pagination Problem
 
 ```json
-// BAD — from+size has O(from+size) cost per shard, multiplied by shard count
+// ❌ BAD — from+size has O(from+size) cost per shard, multiplied by shard count
 GET /orders/_search
 { "from": 10000, "size": 10 }
 
-// GOOD — search_after uses a cursor (stateless, O(1) per page)
+// ✅ GOOD — search_after uses a cursor (stateless, O(1) per page)
 GET /orders/_search
 {
   "size": 10,
@@ -414,15 +369,24 @@ GET /orders/_search
 }
 ```
 
-`from: 10000` forces each shard to collect and sort 10,010 docs internally, then the coordinating node merges all of them — extremely expensive at scale.
+`from: 10000` forces each shard to collect and sort 10,010 docs, then the coordinating node merges all of them — extremely expensive at scale.
+
+### Query Tuning Checklist
+
+- Always use **filter context** for non-scoring conditions (cached, binary)
+- Avoid `wildcard` / `regex` on high-cardinality keyword fields
+- Use `keyword` for sorting, not `text`
+- Use `_source` filtering to return only needed fields
+- Profile slow queries with `?profile=true`
+- Avoid Painless scripted fields in hot paths — they bypass the query cache
 
 ---
 
-## 9. OpenSearch-Specific Features
+## 09 — OpenSearch-Specific Features
 
 ### k-NN Vector Search
 
-OpenSearch's k-NN plugin enables approximate nearest-neighbor search — the foundation of semantic/vector search and recommendation systems.
+OpenSearch's k-NN plugin enables approximate nearest-neighbor search — the foundation of semantic search and recommendation systems.
 
 ```json
 PUT /products
@@ -444,28 +408,29 @@ PUT /products
     }
   }
 }
+```
 
-// Search by vector
+```json
 GET /products/_search
 {
   "query": {
     "knn": {
-      "embedding": {
-        "vector": [0.12, 0.45, ...],
-        "k": 10
-      }
+      "embedding": { "vector": [0.12, 0.45, "..."], "k": 10 }
     }
   }
 }
 ```
 
-Engines available: `lucene` (pure Java, no native deps), `nmslib` (fast, C++), `faiss` (Meta's library, GPU support).
+**Engines available:**
+- `lucene` — pure Java, no native deps, easiest to run
+- `nmslib` — fast, C++ implementation
+- `faiss` — Meta's library, GPU support for massive scale
 
-**HNSW** (Hierarchical Navigable Small World) is the default algorithm — builds a graph of vectors at multiple layers for approximate nearest-neighbor search in O(log N).
+**HNSW** (Hierarchical Navigable Small World) builds a multi-layer graph of vectors for approximate nearest-neighbor search in O(log N). Vector indexes consume significant RAM proportional to `dimension × document_count`.
 
-### Neural Search (OpenSearch 2.x)
+### Hybrid Search (Neural Search — OpenSearch 2.x)
 
-Combines BM25 keyword search with vector search using a hybrid scoring model:
+Combines BM25 keyword search with vector search using a pipeline:
 
 ```json
 GET /products/_search
@@ -474,7 +439,7 @@ GET /products/_search
     "hybrid": {
       "queries": [
         { "match": { "product_name": "wireless headphones" } },
-        { "knn": { "embedding": { "vector": [...], "k": 10 } } }
+        { "knn": { "embedding": { "vector": ["..."], "k": 10 } } }
       ]
     }
   },
@@ -482,62 +447,48 @@ GET /products/_search
     "phase_results_processors": [{
       "normalization-processor": {
         "normalization": { "technique": "min_max" },
-        "combination":   { "technique": "arithmetic_mean", "parameters": { "weights": [0.3, 0.7] } }
+        "combination": {
+          "technique": "arithmetic_mean",
+          "parameters": { "weights": [0.3, 0.7] }
+        }
       }
     }]
   }
 }
 ```
 
-### ML Commons
+### Free Security Plugin
 
-OpenSearch's ML framework for running models within the cluster — supports text embedding models, anomaly detection, and custom models via the ML Commons API.
-
-### Security Plugin (Free in OpenSearch)
-
-OpenSearch bundles security features that are paywalled in Elasticsearch:
+OpenSearch bundles features that are paywalled in Elasticsearch:
 - TLS encryption (node-to-node + REST)
 - Role-based access control (RBAC)
-- Field-level security (mask or exclude sensitive fields per role)
-- Document-level security (users only see documents matching a query)
+- Field-level and document-level security
 - Audit logging
 - SAML, OIDC, LDAP integration
 
-```yaml
-# opensearch.yml
-plugins.security.ssl.transport.enabled: true
-plugins.security.ssl.http.enabled: true
-plugins.security.allow_default_init_securityindex: true
-```
-
 ---
 
-## 10. Common Production Patterns
+## 10 — Production Patterns
 
-### Write Alias Pattern
+### Write Alias Pattern (Zero-Downtime Reindexing)
 
-Never write directly to an index — always write to an alias. This allows zero-downtime reindexing.
+Never write directly to an index — always write to an **alias**:
 
 ```json
-// Create index with version suffix
-PUT /orders-v1 { "mappings": { ... } }
+// 1. Create versioned index
+PUT /orders-v1 { "mappings": { "..." } }
 
-// Create alias pointing to it
+// 2. Create alias pointing to it
 POST /_aliases
-{
-  "actions": [
-    { "add": { "index": "orders-v1", "alias": "orders", "is_write_index": true } }
-  ]
-}
+{ "actions": [{ "add": { "index": "orders-v1", "alias": "orders", "is_write_index": true } }] }
 
-// App always writes to alias "orders"
-PUT /orders/_doc/ord_891 { ... }
+// 3. App always writes to alias "orders" — index name is hidden
 
-// Reindex to v2 (mapping change)
+// 4. When schema changes: reindex to v2
 POST /_reindex
 { "source": { "index": "orders-v1" }, "dest": { "index": "orders-v2" } }
 
-// Atomic alias swap — zero downtime
+// 5. Atomic alias swap — zero downtime
 POST /_aliases
 {
   "actions": [
@@ -547,19 +498,17 @@ POST /_aliases
 }
 ```
 
-### Log Ingestion Pattern (ELK / EFK Stack)
+### Log Ingestion Pipeline
 
 ```
 Application logs
-    → Filebeat / Fluent Bit        (lightweight log shipper)
+    → Filebeat / Fluent Bit        (lightweight shipper)
     → Logstash / Data Prepper      (parse, enrich, filter)
     → OpenSearch / Elasticsearch   (store, index)
-    → OpenSearch Dashboards/Kibana (visualize)
-```
+    → Dashboards / Kibana          (visualize)
 
-For OpenSearch on AWS:
-```
-Application → CloudWatch Logs → Kinesis Firehose → Amazon OpenSearch Service
+On AWS:
+    Application → CloudWatch Logs → Kinesis Firehose → Amazon OpenSearch Service
 ```
 
 ### Index Template for Time-Series Data
@@ -592,139 +541,92 @@ New indexes matching `logs-*` automatically inherit this template.
 
 ---
 
-## 11. Cluster Health & Operations
+## 11 — Cluster Health & Operations
 
 ### Health States
 
-```
-Green  → All primary + replica shards assigned and active
-Yellow → All primaries active, but some replicas unassigned (data safe, not redundant)
-Red    → One or more primary shards unassigned (data loss possible — partial results)
-```
+| State | Meaning |
+|---|---|
+| 🟢 **Green** | All primary + replica shards assigned and active |
+| 🟡 **Yellow** | All primaries active, but some replicas unassigned — data safe, not redundant |
+| 🔴 **Red** | One or more primary shards unassigned — data loss possible, partial results returned |
 
 ```bash
 GET /_cluster/health
-GET /_cluster/health?level=indices
 GET /_cat/shards?v&h=index,shard,prirep,state,node,unassigned.reason
 GET /_cat/nodes?v&h=name,heap.percent,ram.percent,cpu,load_1m,node.role
 ```
 
-### Common Issues
+### Common Issues & Fixes
 
-**Unassigned shards (Yellow/Red):**
-- Disk watermark exceeded → nodes refuse new shards
-- Not enough nodes for replica placement
-- Fix: `PUT /_cluster/settings { "transient": { "cluster.routing.allocation.enable": "all" } }`
-
-**High JVM heap:**
-- Field data cache bloat from text field aggregations (never aggregate on text)
-- Large bulk batches
-- Too many shards per node (keep < 20 shards per GB of heap)
-
-**Split brain (historical, prevented in modern versions):**
-- Set `minimum_master_nodes = (master_eligible_nodes / 2) + 1`
-- In ES 7+ and OpenSearch, Raft-based consensus (cluster.initial_master_nodes) replaces this
-
-**Hot shards:**
-- All traffic hitting one shard because of bad partition key (e.g. using a low-cardinality field as routing)
-- Fix: custom routing on high-cardinality field, or use `_routing` with multiple shards
+- **Unassigned shards (Yellow/Red):** Disk watermark exceeded — nodes refuse new shards. Fix: free disk space or `PUT /_cluster/settings { "transient": { "cluster.routing.allocation.enable": "all" } }`
+- **High JVM heap:** Field data cache bloat from `text` field aggregations (never aggregate on `text`). Too many shards per node.
+- **Hot shards:** Low-cardinality routing key concentrates traffic on one shard. Fix: route on a high-cardinality field.
+- **Split brain (modern versions):** Prevented by Raft-based consensus (`cluster.initial_master_nodes` in ES 7+ / OpenSearch).
 
 ---
 
-## 12. Data Modelling Decisions
+## 12 — Data Modelling Decisions
 
-### Nested vs Flattened vs Parent-Child
+### Nested vs Flat vs Parent-Child
 
-**Flat document (preferred):** Denormalize and repeat data. Fastest. Simplest.
+| Model | When to use | Cost |
+|---|---|---|
+| **Flat (preferred)** | Denormalize and repeat data — fastest and simplest | None |
+| **Nested objects** | Need correlated inner-object queries (e.g. `item.name=Laptop AND item.price<80k` for the **same** item) | Expensive updates — stored as hidden docs |
+| **Parent-child** | Child documents change frequently without reindexing the parent | Expensive at query time — requires same shard co-location |
 
-```json
-{ "order_id": "ord_891", "customer_name": "Swaranshu", "item_name": "Laptop", "item_price": 75000 }
-{ "order_id": "ord_891", "customer_name": "Swaranshu", "item_name": "Mouse",  "item_price": 2000 }
-```
-
-**Nested objects:** Use when you need to query inner objects as a unit (e.g. "orders where item_name=Laptop AND item_price<80000" for the same item). Stored as hidden documents — expensive to update.
-
-```json
-{
-  "order_id": "ord_891",
-  "items": [
-    { "name": "Laptop", "price": 75000 },
-    { "name": "Mouse",  "price": 2000 }
-  ]
-}
-```
-
-```json
-{ "nested": { "path": "items", "query": {
-    "bool": { "must": [
-      { "match": { "items.name": "Laptop" } },
-      { "range": { "items.price": { "lt": 80000 } } }
-    ]}
-}}}
-```
-
-**Parent-child:** Separate types with a join field. Child documents can be updated without reindexing the parent. Expensive at query time (requires same shard). Use only when relationships change frequently.
-
-**Rule:** Start flat. Move to nested only when you need correlated inner-object queries. Avoid parent-child unless you have a clear update-frequency reason.
+> **Rule:** Start flat. Move to nested only when you need correlated inner-object queries. Avoid parent-child unless update frequency explicitly demands it.
 
 ---
 
-## 13. Elasticsearch vs OpenSearch — When to Choose Which
+## 13 — When to Choose Which
 
-### Choose OpenSearch when:
-- You're on AWS (deep IAM, VPC, CloudWatch integration via Amazon OpenSearch Service)
-- You need security features for free (RBAC, field/document-level, TLS)
-- You need vector/semantic search with open tooling
-- License compliance is critical (Apache 2.0)
-- Budget constraints — no Elastic subscription needed
+### ✅ Choose OpenSearch when:
+- You're on AWS — deep IAM, VPC, CloudWatch integration via Amazon OpenSearch Service
+- You need security features for free (RBAC, field/document-level, TLS, audit logging)
+- License compliance is critical — Apache 2.0 with no restrictions
+- You need vector/semantic search with open tooling (k-NN + ML Commons)
 - You're building a log analytics pipeline on AWS
 
-### Choose Elasticsearch when:
+### ✅ Choose Elasticsearch when:
 - You need Elastic's proprietary ML models (ELSER for semantic search, Elastic AI Assistant)
 - You have an existing Elastic support contract
 - You need Elastic APM or Elastic Security (SIEM) as an integrated suite
 - Your team has deep Kibana + Elastic Stack expertise
-- You need the very latest Lucene features (Elasticsearch ships Lucene upgrades faster)
+- You need the very latest Lucene features — Elasticsearch ships Lucene upgrades faster
 
 ---
 
-## 14. Tech Lead Interview — Key Talking Points
+## 14 — Interview Talking Points
 
-### Shard Strategy
+### On Shard Strategy
 
-> "I size shards at 20–40 GB each with a target of 20 shards per GB of JVM heap per node. For time-series data I use daily or monthly indexes with ISM/ILM to roll through hot → warm → cold → delete. I always write through an alias so I can reindex without downtime."
+> "I size shards at 20–40 GB each, targeting 20 shards per GB of JVM heap per node. For time-series data I use daily or monthly indexes with ISM/ILM to roll through hot → warm → cold → delete. I always write through an alias so I can reindex without downtime."
 
-### Relevance vs Performance Tradeoff
+### On Relevance vs Performance
 
-> "BM25 is great for keyword relevance. For semantic search, we layer k-NN vector search on top — either as a hybrid query combining BM25 + cosine similarity, or pure vector if the use case is recommendation-style. The tradeoff is that vector indexes (HNSW graphs) consume significant RAM proportional to vector dimension × document count."
+> "BM25 is great for keyword relevance. For semantic search, I layer k-NN vector search on top — either as a hybrid query combining BM25 + cosine similarity, or pure vector for recommendation-style use cases. The tradeoff is that HNSW graphs consume significant RAM proportional to vector dimension × document count."
 
-### At-Scale Concerns
+### On At-Scale Concerns
 
-> "The biggest operational challenges are: shard count explosion on dynamic indexes, JVM heap pressure from fielddata on text fields, hot shard patterns from poor routing keys, and query latency from deep pagination. I instrument with slow query logs, profile API, and node stats dashboards."
+> "The biggest operational challenges are: shard count explosion on dynamic indexes, JVM heap pressure from fielddata on text fields, hot shard patterns from poor routing keys, and query latency from deep pagination. I instrument with slow query logs, the profile API, and node stats dashboards."
 
-### Cluster Topology for Production
+### On Production Cluster Topology
 
 ```
-3 dedicated master-eligible nodes   (t3.medium — lightweight, no data)
+3 dedicated master-eligible nodes   (lightweight — t3.medium, no data)
 N data nodes                        (sized by data volume + query load)
-2 coordinating nodes (optional)     (handle search fan-out for heavy query traffic)
-1–2 ingest nodes (optional)         (pipeline preprocessing — grok, enrich, etc.)
+2 coordinating nodes (optional)     (handle search fan-out for heavy traffic)
+1–2 ingest nodes (optional)         (pipeline preprocessing — grok, enrich)
 ```
-
-### Reindexing Strategy (Zero Downtime)
-
-> "Versioned index names + alias for write. When schema changes: create v2 index with new mapping → reindex from v1 to v2 via _reindex API → atomic alias swap. Application is insulated from index names entirely — it always writes to and reads from the alias."
-
-### OpenSearch vs Elasticsearch for New Greenfield Project
-
-> "For a new project on AWS, I'd default to OpenSearch — Apache 2.0 license, full security plugin at no cost, deep AWS integration, and k-NN vector search built in for future ML use cases. For an existing Elastic stack or if we need Elastic's proprietary ML, I'd stay on Elasticsearch."
 
 ---
 
-## 15. Quick Reference Cheatsheet
+## 15 — Quick Reference Cheatsheet
 
 ```bash
-# Cluster
+# Cluster health
 GET /_cluster/health
 GET /_cat/nodes?v
 GET /_cat/shards?v
@@ -733,52 +635,31 @@ GET /_cat/shards?v
 PUT  /my-index { "settings": {}, "mappings": {} }
 GET  /my-index/_mapping
 POST /my-index/_forcemerge?max_num_segments=1
-POST /_reindex
+POST /_reindex { "source": { "index": "v1" }, "dest": { "index": "v2" } }
 
-# Search
+# Alias management
+POST /_aliases { "actions": [{ "add": {} }, { "remove": {} }] }
+
+# Search & debug
 GET /my-index/_search { "query": { ... } }
-GET /my-index/_search?profile=true    # slow query profiling
-GET /my-index/_explain/doc_id { "query": {} }  # why did this doc score X?
-
-# Alias
-POST /_aliases { "actions": [ { "add": {} }, { "remove": {} } ] }
-
-# ISM (OpenSearch)
-PUT /_plugins/_ism/policies/log-policy { "policy": { ... } }
-POST /_plugins/_ism/add/logs-*
-
-# k-NN
-GET /products/_search { "query": { "knn": { "embedding": { "vector": [...], "k": 10 } } } }
+GET /my-index/_search?profile=true        # slow query profiling
+GET /my-index/_explain/<doc_id> { "query": {} }  # why did this doc score X?
 
 # Diagnostics
 GET /_nodes/stats
 GET /_nodes/hot_threads
-GET /my-index/_stats
 GET /_tasks?actions=*search*&detailed
+
+# ISM (OpenSearch)
+PUT /_plugins/_ism/policies/log-policy { "policy": { ... } }
+
+# k-NN
+GET /products/_search
+{ "query": { "knn": { "embedding": { "vector": [...], "k": 10 } } } }
 ```
 
 ---
 
-## 16. One-Liner Answers for Common Interview Questions
+## 16 — Interview Summary
 
-**Q: What is the difference between a shard and a replica?**
-A primary shard holds actual data and handles writes; a replica is a copy of a primary that provides redundancy and handles reads. Replicas can be added/removed at runtime; primary shard count is fixed at index creation.
-
-**Q: Why can't you change the number of primary shards after index creation?**
-The routing formula `hash(doc_id) % num_primary_shards` hardcodes shard count — changing it would invalidate all existing routing. The workaround is reindexing to a new index with the desired shard count.
-
-**Q: What is near real-time search?**
-Documents are searchable ~1 second after indexing — after the next refresh cycle writes the in-memory buffer to a Lucene segment. Not instantly after the write ACK.
-
-**Q: How do you handle mapping conflicts in OpenSearch?**
-Use explicit mappings with `dynamic: strict` to reject unmapped fields. For migrations, create a new versioned index and reindex.
-
-**Q: What causes a red cluster?**
-One or more primary shards are unassigned — typically disk full (watermark exceeded), node loss without enough nodes to re-place primaries, or shard corruption.
-
-**Q: text vs keyword?**
-`text` = analyzed, full-text searchable, not aggregatable. `keyword` = exact match, filterable, aggregatable, sortable. Use multi-field mapping to get both.
-
-**Q: How is OpenSearch different from Elasticsearch for a tech lead?**
-License (Apache 2.0 vs SSPL/AGPL), governance (community vs Elastic), free security plugin in OpenSearch, AWS-native integration, k-NN vector search built in. API ~95% compatible at the 7.10 baseline.
-
+> "OpenSearch and Elasticsearch are both distributed search engines built on Lucene. The key differences for a tech lead are license (Apache 2.0 vs SSPL/AGPL), governance, and the fact that OpenSearch bundles a full security plugin for free and has deep AWS integration. At the core, both use an inverted index for full-text search and BM25 for relevance scoring. The critical operational concepts are: shard sizing for performance, the refresh/flush cycle for near-real-time semantics, filter context caching for query speed, alias-based reindexing for zero-downtime schema migrations, and ILM/ISM for cost-effective time-series data management."
