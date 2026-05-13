@@ -84,6 +84,9 @@ body {
 .prose-tweaks tbody tr:hover {
   background: rgba(0, 0, 0, 0.03);
 }
+.prose-tweaks td {
+  color: #1a1917;
+}
 .prose-tweaks blockquote {
   border-left: 4px solid #c8392b;
   background: rgba(200, 57, 43, 0.04);
@@ -101,7 +104,7 @@ body {
 }
 .prose-tweaks p,
 .prose-tweaks li {
-  color: #2a2825;
+  color: #1a1917;
 }
 .prose-tweaks a {
   color: #c8392b;

@@ -33,7 +33,7 @@ export default function ArticlePage({
           / <span className="text-text">{article.meta.title}</span>
         </nav>
 
-        <div className="prose prose-invert max-w-none prose-tweaks">
+        <div className="prose prose-stone max-w-none prose-tweaks">
           <MarkdownRenderer source={article.content} />
         </div>
       </article>
