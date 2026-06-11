@@ -40,8 +40,10 @@ function titleize(s: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function readArticle(topic: string, file: string): ArticleMeta {
-  const filepath = path.join(ROOT, topic, file);
+function readArticle(topic: string, file: string, subdir?: string): ArticleMeta {
+  const filepath = subdir
+    ? path.join(ROOT, topic, subdir, file)
+    : path.join(ROOT, topic, file);
   const raw = fs.readFileSync(filepath, "utf8");
   const { data } = matter(raw);
   const slug = file.replace(/\.md$/i, "");
@@ -65,13 +67,29 @@ export function getTopics(): Topic[] {
     if (RESERVED.has(e.name)) continue;
 
     const topicDir = path.join(ROOT, e.name);
-    const files = fs
+    const directFiles = fs
       .readdirSync(topicDir)
       .filter((f) => f.toLowerCase().endsWith(".md"));
-    if (files.length === 0) continue;
 
-    const articles = files
-      .map((f) => readArticle(e.name, f))
+    // Also collect .md files from one level of subdirectories
+    const subdirEntries = fs
+      .readdirSync(topicDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory());
+    const subArticles = subdirEntries.flatMap((sub) => {
+      const subPath = path.join(topicDir, sub.name);
+      return fs
+        .readdirSync(subPath)
+        .filter((f) => f.toLowerCase().endsWith(".md"))
+        .map((f) => readArticle(e.name, f, sub.name));
+    });
+
+    const files = [...directFiles];
+    if (files.length === 0 && subArticles.length === 0) continue;
+
+    const articles = [
+      ...files.map((f) => readArticle(e.name, f)),
+      ...subArticles,
+    ]
       .sort((a, b) => {
         if (a.order != null && b.order != null) return a.order - b.order;
         if (a.order != null) return -1;
@@ -94,7 +112,27 @@ export function getArticle(topic: string, slug: string): {
   meta: ArticleMeta;
   content: string;
 } | null {
-  const filepath = path.join(ROOT, topic, `${slug}.md`);
+  // Try direct path first
+  let filepath = path.join(ROOT, topic, `${slug}.md`);
+
+  // If not found, search one level of subdirectories
+  if (!fs.existsSync(filepath)) {
+    const topicDir = path.join(ROOT, topic);
+    if (fs.existsSync(topicDir)) {
+      const subdirs = fs
+        .readdirSync(topicDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name);
+      for (const sub of subdirs) {
+        const candidate = path.join(ROOT, topic, sub, `${slug}.md`);
+        if (fs.existsSync(candidate)) {
+          filepath = candidate;
+          break;
+        }
+      }
+    }
+  }
+
   if (!fs.existsSync(filepath)) return null;
   const raw = fs.readFileSync(filepath, "utf8");
   const { data, content } = matter(raw);
